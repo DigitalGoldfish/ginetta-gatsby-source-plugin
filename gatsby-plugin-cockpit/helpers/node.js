@@ -81,13 +81,19 @@ module.exports = class CreateNodesHelpers {
   // the important part is the `___NODE`.
   composeEntryAssetFields(assetFields, entry) {
     return assetFields.reduce((acc, fieldname) => {
-      if (entry[fieldname].path == null) {
-        return acc;
+      if (typeof entry[fieldname] === "undefined" || entry[fieldname].path == null) {
+        const fileLocation = this.getFileAsset(this.config.placeholderImage);
+        entry[fieldname] = {
+          _isset: false,
+          path: "",
+          localFile___NODE: fileLocation
+        };
+      } else {
+        entry[fieldname]._isset = true;
+        let fileLocation = this.getFileAsset(entry[fieldname].path);
+        entry[fieldname].localFile___NODE = fileLocation;
       }
 
-      let fileLocation = this.getFileAsset(entry[fieldname].path);
-      
-      entry[fieldname].localFile___NODE = fileLocation;
       const newAcc = {
         ...acc,
         [fieldname]: entry[fieldname],
@@ -305,10 +311,12 @@ module.exports = class CreateNodesHelpers {
 
   composeEntryWithOtherFields(otherFields, entry) {
     return otherFields.reduce(
-      (acc, fieldname) => ({
+      (acc, fieldname) => {
+        return {
         ...acc,
-        [fieldname]: entry[fieldname],
-      }),
+          [fieldname]: typeof entry[fieldname] !== "undefined" ? entry[fieldname] : this.config.placeholderValue,
+        }
+      },
       {}
     );
   }

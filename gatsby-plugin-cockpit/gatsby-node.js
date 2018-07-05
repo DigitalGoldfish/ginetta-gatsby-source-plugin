@@ -13,7 +13,9 @@ exports.sourceNodes = async ({
     accessToken: '',
     sanitizeHtmlConfig: {},    
     customComponents: [],
-  }
+    placeholderImage: 'https://via.placeholder.com/1x1',
+    placeholderValue: '_cockpitisnotset_'
+  };
   
   const config = Object.assign(defaultConfig, pluginOptions.cockpitConfig);
   const host = config.baseURL + config.folder;

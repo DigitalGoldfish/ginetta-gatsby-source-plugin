@@ -46,7 +46,9 @@ class AssetMapHelpers {
       );
       imageFields.forEach(fieldname => {
         entries.forEach(entry => {
-          if (entry[fieldname].path) {
+          if (typeof entry[fieldname] === "undefined") {
+            return;
+          } else if (entry[fieldname].path) {
             let path = entry[fieldname].path;
             if (!validUrl.isUri(path)) {
               path = this.config.host + '/' + path;
@@ -70,6 +72,12 @@ class AssetMapHelpers {
   // gets all assets and adds them as file nodes
   // returns a map of url => node id
   async createAssetsNodes() {
+
+    // add default placeholder image to assets map
+    this.assets.push({
+      path: this.config.placeholderImage
+    });
+
     this.addAllOtherImagesPathsToAssetsArray();
 
     const allRemoteAssetsPromises = this.assets.map(asset =>
