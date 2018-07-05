@@ -29,18 +29,18 @@ async function createAssetsMap(assetPromises) {
 }
 
 class AssetMapHelpers {
-  constructor({ assets, store, cache, createNode, collectionsItems, config }) {
+  constructor({ assets, store, cache, createNode, collectionsItems, regionsItems, config }) {
     this.assets = assets;
     this.store = store;
     this.cache = cache;
     this.createNode = createNode;
     this.collectionsItems = collectionsItems;
+    this.regionsItems = regionsItems;
     this.config = config;
     this.config.host = config.baseURL + config.folder;
   }
 
-  addAllOtherImagesPathsToAssetsArray() {
-    this.collectionsItems.map(({ entries, fields }) => {
+  extractAssetPaths({ entries, fields }) {
       const imageFields = Object.keys(fields).filter(
         fieldname => fields[fieldname].type === 'image'
       );
@@ -66,7 +66,11 @@ class AssetMapHelpers {
           }
         });
       });
-    });
+  }
+
+  addAllOtherImagesPathsToAssetsArray() {
+    this.collectionsItems.map(this.extractAssetPaths.bind(this));
+    this.regionsItems.map(this.extractAssetPaths.bind(this));
   }
 
   // gets all assets and adds them as file nodes

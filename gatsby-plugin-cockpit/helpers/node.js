@@ -35,14 +35,17 @@ module.exports = class CreateNodesHelpers {
 
         return { name, nodes, fields };
       }),
-      this.regionsItems.map( ({ name, data }) => {
+      this.regionsItems.map( ({ fields, entries, name }) => {
 
-        const node = this.createRegionItemNode({
-          data,
+        const nodes = entries.map(entry =>
+          this.createRegionItemNode({
+            entry,
           name,
-        });
+            fields,
+          })
+        );
 
-        return { name: 'region', node };
+        return { name, nodes, fields };
       })
     );
   }
@@ -354,6 +357,22 @@ module.exports = class CreateNodesHelpers {
   }
 
   createCollectionItemNode({ entry, fields, name }) {
+    return this.createItemNode(
+      { entry, fields, name},
+      entry._id,
+      singular(name)
+    );
+  }
+
+  createRegionItemNode({ entry, fields, name}) {
+    return this.createItemNode(
+      { entry, fields, name},
+      `region-${name}`,
+      `region${name}`
+    );
+  }
+
+  createItemNode({ entry, fields, name }, id, type) {
 
     //1
     const imageFields = this.getImageFields(fields);
@@ -381,38 +400,20 @@ module.exports = class CreateNodesHelpers {
       ...entryAssetFields,
       ...entryCollectionLinkFields,
       ...entryLayoutFields,
-      id: entry._id,
+      id: id,
       children: [],
       parent: null,
       internal: {
-        type: singular(name),
+        type: type,
         contentDigest: crypto
           .createHash(`md5`)
           .update(JSON.stringify(entry))
           .digest(`hex`),
       },
     };
+    console.log(node);
     this.createNode(node);
     return node;
   }
 
-  createRegionItemNode({ data, name }) {
-
-    const node = {
-      ...data,
-      name: name,
-      children: [],
-      parent: null,
-      id: `region-${name}`,
-      internal: {
-        type: `region${name}`,
-        contentDigest: crypto
-          .createHash(`md5`)
-          .update(JSON.stringify(data))
-          .digest(`hex`),
-      },
-    };
-    this.createNode(node);
-    return node;
-  }  
 }

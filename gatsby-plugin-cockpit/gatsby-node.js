@@ -34,7 +34,9 @@ exports.sourceNodes = async ({
     cockpitHelpers.getCockpitRegions(),
   ]);
 
-  assets.forEach(asset => asset.path = host + '/storage/uploads' + asset.path);
+  assets.forEach((asset) => {
+    asset.path = host + '/storage/uploads' + asset.path;
+  });
 
   exports.collectionsItems = collectionsItems;
   exports.regionsItems = regionsItems;
@@ -46,6 +48,7 @@ exports.sourceNodes = async ({
     cache,
     createNode,
     collectionsItems,
+    regionsItems,
     config,
   });
 

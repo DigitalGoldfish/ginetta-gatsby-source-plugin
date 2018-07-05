@@ -31,9 +31,8 @@ module.exports = class CockpitHelpers {
 
   // get cockpit collection items by collection name
   async getRegionItems(name) {
-    const values = await this.cockpit.regionData(name);
-    const template = await this.cockpit.regionGet(name);
-    return { data: {values, template}, name };
+    const { fields, entries } = JSON.parse(await this.cockpit.regionGet(name));
+    return { fields, entries, name };
   }
 
   // get all cockpit regions, together with their items
