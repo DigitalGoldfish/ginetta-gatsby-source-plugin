@@ -77,17 +77,49 @@ module.exports = class CreateNodesHelpers {
     );
   }
 
-  // map the entry image fields to link to the asset node
-  // the important part is the `___NODE`.
+  composeEntryImageFields(assetFields, entry) {
+    const fileLocation = this.getFileAsset(this.config.placeholderImage);
+    const defaultValue = {
+      _isset: false,
+      path: "",
+      localFile___NODE: fileLocation
+    };
+
+    return this.composeEntryAssetFieldsHelper(assetFields, entry, defaultValue);
+  }
+
   composeEntryAssetFields(assetFields, entry) {
-    return assetFields.reduce((acc, fieldname) => {
-      if (typeof entry[fieldname] === "undefined" || entry[fieldname].path == null) {
         const fileLocation = this.getFileAsset(this.config.placeholderImage);
-        entry[fieldname] = {
+    const defaultValue = {
           _isset: false,
           path: "",
+      localFile___NODE: fileLocation,
+      title: "",
+      mime: "",
+      description: "",
+      size: "",
+      image: false,
+      video: false,
+      audio: false,
+      archive: false,
+      document: false,
+      code: false,
+      created: 0,
+      modified: 0,
+      _by: 'abc',
+      _id: 'def',
           localFile___NODE: fileLocation
         };
+
+    return this.composeEntryAssetFieldsHelper(assetFields, entry, defaultValue);
+  }
+
+  // map the entry image fields to link to the asset node
+  // the important part is the `___NODE`.
+  composeEntryAssetFieldsHelper(assetFields, entry, defaultValue) {
+    return assetFields.reduce((acc, fieldname) => {
+      if (typeof entry[fieldname] === "undefined" || entry[fieldname].path == null) {
+        entry[fieldname] = defaultValue;
       } else {
         entry[fieldname]._isset = true;
         let fileLocation = this.getFileAsset(entry[fieldname].path);
