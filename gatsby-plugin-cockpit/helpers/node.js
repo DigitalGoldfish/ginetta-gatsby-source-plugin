@@ -405,7 +405,7 @@ module.exports = class CreateNodesHelpers {
       parent: null,
       id: `region-${name}`,
       internal: {
-        type: 'region',
+        type: `region${name}`,
         contentDigest: crypto
           .createHash(`md5`)
           .update(JSON.stringify(data))
