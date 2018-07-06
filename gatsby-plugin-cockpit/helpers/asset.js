@@ -68,9 +68,125 @@ class AssetMapHelpers {
       });
   }
 
+  extractAssetPathsNew({ entries, fields }) {
+    entries.forEach(entry => {
+      this.processFields(fields, entry);
+    });
+  }
+
+  processFields(fields, data) {
+    Object.keys(fields).forEach((fieldName) => {
+      this.processField(fields[fieldName], data[fieldName])
+    });
+  }
+
+  processField(field, data) {
+    if (typeof data === "undefined"
+      || data === null)
+    {
+      return;
+    }
+    const fieldType = field.type;
+    switch(fieldType) {
+      case "image":
+        if (typeof data.path === "undefined" ||data.path === null || data.path === "") {
+          return;
+        }
+        this.addAsset(data.path);
+        break;
+      case "file":
+        if (typeof data === "undefined" || data === null) {
+          return;
+        }
+        this.addAsset(data);
+        break;
+      case "repeater":
+        if (typeof data === "undefined" || data === null || !Array.isArray(data) || data.length === 0) {
+          return;
+        }
+
+        data.forEach(({ field, value }) => {
+          if (typeof value === "undefined" || value === null) {
+            return;
+          }
+          this.processField(field, value);
+        });
+        break;
+      case "set":
+        if (typeof data === "undefined" || data === null) {
+          return;
+        }
+        const fields = field.options.fields.reduce((acc, currentValue) => {
+          acc[currentValue.name] = currentValue;
+          return acc;
+        }, {});
+
+        this.processFields(fields, data);
+        break;
+      case "gallery":
+        if (typeof data === "undefined" || data === null || !Array.isArray(data) || data.length === 0) {
+          return;
+        }
+        data.forEach((galleryImage) => {
+          if (typeof galleryImage === "undefined" || galleryImage === null || galleryImage.path === "") {
+            return;
+          }
+          this.addAsset(galleryImage.path);
+        });
+        break;
+      case "markdown":
+        // TODO: extract image URLs from markdown source code
+        break;
+      case "html": case "wysiwyg": case "code":
+        // TODO: extract image URLs from html source code
+        break;
+      default:
+        // do nothing
+    }
+
+    /*
+    if (entry[fieldname].path) {
+      let path = entry[fieldname].path;
+      if (!validUrl.isUri(path)) {
+        path = this.config.host + '/' + path;
+      }
+      if (validUrl.isUri(path)) {
+        this.assets.push({
+          path,
+        });
+      } else {
+        throw new Error(
+          'The path of an image seems to be malformed -> ',
+          path
+        );
+      }
+    }*/
+  }
+
+  addAsset(path) {
+    if (!validUrl.isUri(path)) {
+      path = this.config.host + '/' + path;
+    }
+    if (validUrl.isUri(path)) {
+      this.assets.push({
+        path,
+      });
+    } else {
+      throw new Error(
+        'The path of an image seems to be malformed -> ',
+        path
+      );
+    }
+  }
+
   addAllOtherImagesPathsToAssetsArray() {
     this.collectionsItems.map(this.extractAssetPaths.bind(this));
     this.regionsItems.map(this.extractAssetPaths.bind(this));
+  }
+
+  addAllOtherImagesPathsToAssetsArrayNew() {
+    this.collectionsItems.map(this.extractAssetPathsNew.bind(this));
+    this.regionsItems.map(this.extractAssetPathsNew.bind(this));
   }
 
   // gets all assets and adds them as file nodes
@@ -82,7 +198,7 @@ class AssetMapHelpers {
       path: this.config.placeholderImage
     });
 
-    this.addAllOtherImagesPathsToAssetsArray();
+    this.addAllOtherImagesPathsToAssetsArrayNew();
 
     const allRemoteAssetsPromises = this.assets.map(asset =>
       createRemoteAssetByPath(

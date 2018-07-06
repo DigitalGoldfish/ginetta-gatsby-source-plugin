@@ -1,6 +1,6 @@
 const CockpitHelpers = require('./helpers/cockpit');
 const { AssetMapHelpers } = require('./helpers/asset');
-const CreateNodesHelpers = require('./helpers/node');
+const CreateNodesHelpers = require('../.cache/node');
 
 
 module.exports = {

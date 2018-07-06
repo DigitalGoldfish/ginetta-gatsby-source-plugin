@@ -14,7 +14,8 @@ exports.sourceNodes = async ({
     sanitizeHtmlConfig: {},    
     customComponents: [],
     placeholderImage: 'https://via.placeholder.com/1x1',
-    placeholderValue: '_cockpitisnotset_'
+    placeholderValue: '_cockpitisnotset_',
+    placeholderValueEmptyArray: "[]",
   };
   
   const config = Object.assign(defaultConfig, pluginOptions.cockpitConfig);

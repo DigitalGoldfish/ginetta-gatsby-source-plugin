@@ -19,6 +19,34 @@ module.exports = class CreateNodesHelpers {
     this.createNode = createNode;
     this.assetsMap = assetsMap;
     this.config = config;
+
+    const fileLocation = this.getFileAsset(this.config.placeholderImage);
+
+    this.placeHolderImage = {
+      _isset: false,
+      path: "",
+      localFile___NODE: fileLocation
+    };
+
+    this.placeHolderAsset = {
+      _isset: false,
+      path: "",
+      localFile___NODE: fileLocation,
+      title: "",
+      mime: "",
+      description: "",
+      size: "",
+      image: false,
+      video: false,
+      audio: false,
+      archive: false,
+      document: false,
+      code: false,
+      created: 0,
+      modified: 0,
+      _by: 'someone',
+      _id: 'someid',
+    };
   }
 
   async createItemsNodes() {
@@ -74,54 +102,51 @@ module.exports = class CreateNodesHelpers {
     );
   }
 
+  getRepeaterFields(fields) {
+    return Object.keys(fields).filter(
+      fieldname => fields[fieldname].type === 'repeater'
+    );
+  }
+
   getOtherFields(fields) {
     return Object.keys(fields).filter(
-      fieldname => !['image', 'asset', 'collectionlink'].includes(fields[fieldname].type)
+      fieldname => !['image', 'asset', 'collectionlink', 'repeater'].includes(fields[fieldname].type)
     );
   }
 
   composeEntryImageFields(assetFields, entry) {
-    const fileLocation = this.getFileAsset(this.config.placeholderImage);
-    const defaultValue = {
-      _isset: false,
-      path: "",
-      localFile___NODE: fileLocation
-    };
+    return this.composeEntryAssetFieldsHelper(assetFields, entry, this.placeHolderImage);
+  }
 
-    return this.composeEntryAssetFieldsHelper(assetFields, entry, defaultValue);
+  composeEntryRepeaterFields(repeaterFields, entry) {
+    return repeaterFields.reduce((acc, fieldname) => {
+      if (typeof entry[fieldname] === "undefined"
+        || entry[fieldname] === null
+        || entry[fieldname].path == null)
+      {
+        entry[fieldname] = [];
+      }
+
+      const newAcc = {
+        ...acc,
+        [fieldname]: entry[fieldname],
+      };
+      return newAcc;
+    }, {});
   }
 
   composeEntryAssetFields(assetFields, entry) {
-        const fileLocation = this.getFileAsset(this.config.placeholderImage);
-    const defaultValue = {
-          _isset: false,
-          path: "",
-      localFile___NODE: fileLocation,
-      title: "",
-      mime: "",
-      description: "",
-      size: "",
-      image: false,
-      video: false,
-      audio: false,
-      archive: false,
-      document: false,
-      code: false,
-      created: 0,
-      modified: 0,
-      _by: 'abc',
-      _id: 'def',
-          localFile___NODE: fileLocation
-        };
-
-    return this.composeEntryAssetFieldsHelper(assetFields, entry, defaultValue);
+    return this.composeEntryAssetFieldsHelper(assetFields, entry, this.placeHolderAsset);
   }
 
   // map the entry image fields to link to the asset node
   // the important part is the `___NODE`.
   composeEntryAssetFieldsHelper(assetFields, entry, defaultValue) {
     return assetFields.reduce((acc, fieldname) => {
-      if (typeof entry[fieldname] === "undefined" || entry[fieldname].path == null) {
+      if (typeof entry[fieldname] === "undefined"
+        || entry[fieldname] === null
+        || entry[fieldname].path == null)
+      {
         entry[fieldname] = defaultValue;
       } else {
         entry[fieldname]._isset = true;
@@ -349,15 +374,181 @@ module.exports = class CreateNodesHelpers {
       (acc, fieldname) => {
         return {
         ...acc,
-          [fieldname]: typeof entry[fieldname] !== "undefined" ? entry[fieldname] : this.config.placeholderValue,
+          [fieldname]: (typeof entry[fieldname] !== "undefined" && entry[fieldname] !== null)
+            ? entry[fieldname]
+            : this.config.placeholderValue,
         }
       },
       {}
     );
   }
 
+  processFields(fields, data) {
+    return Object.keys(fields).reduce((acc, currentFieldname) => {
+      acc[currentFieldname] = this.processField(fields[currentFieldname], data[currentFieldname]) ;
+      return acc;
+    }, {});
+  }
+
+  processField(field, data) {
+    const fieldType = field.type;
+    switch (fieldType) {
+      case "text": case "textarea":
+        // TODO: check & strip html
+        return this.processSimpleField(field, data, this.config.placeholderValue);
+      case "wysiwyg": case "html":
+        // TODO: parse html and extract images
+        return this.processSimpleField(field, data, this.config.placeholderValue);
+      case "markdown":
+        return this.processSimpleField(field, data, this.config.placeholderValue);
+      case "color": case "colortag": case "rating": case "date": case "time":
+      case "code": case "password": case "select":
+        return this.processSimpleField(field, data, this.config.placeholderValue);
+      case "multipleselect": case "tags":
+        return this.processSimpleField(field, data, this.config.placeholderValueEmptyArray);
+      case "boolean":
+        return this.processSimpleField(field, data, false);
+      case "object":
+        return this.processSimpleField(field, data, JSON.stringify({}));
+      case "image":
+        return this.processImageField(field, data);
+      case "gallery":
+        return this.processGalleryField(field, data);
+      case "asset":
+        return this.processAssetField(field, data);
+      case "file":
+        return this.processFileField(field, data);
+      case "location":
+        return this.processLocationField(field, data);
+      case "collectionlink":
+        return this.processCollectionLinkField(field, data);
+      case "repeater":
+        return this.processRepeaterField(field, data);
+      case "set":
+        return this.processSetField(field, data);
+      default:
+        console.error("\nUnhandled field type " + fieldType);
+    }
+  }
+
+  processSimpleField(field, data, defaultValue) {
+    return (typeof data !== "undefined"
+        && data !== null
+        && !(Array.isArray(data) && data.length === 0)
+    )
+      ? data
+      : defaultValue;
+  }
+
+  processLocationField(field, data) {
+    return (typeof data !== "undefined"
+      && data !== null
+    )
+      ? data
+      : { lat: 360, lng: 360};
+  }
+
+  processCollectionLinkField(field, data) {
+    const key = fieldname + '___NODE';
+    const newAcc = {
+      ...acc,
+      [key]: entry[fieldname]._id,
+    };
+    return newAcc;
+  }
+
+  processGalleryField(field, data) {
+    if (typeof data !== "undefined"
+      && data !== null
+      && Array.isArray(data) && data.length > 0)
+    {
+      return data.map((image) => {
+        let fileLocation = this.getFileAsset(image.path);
+        // ToDo: Correctly extend meta
+        return {
+          ...image,
+          localFile___NODE: fileLocation
+        }
+      });
+    }
+
+    return [{
+      meta: {
+        title: ''
+      },
+      ...this.placeHolderImage
+    }];
+  }
+
+  processImageField(field, data) {
+
+    if (typeof data === "undefined" || data === null || data.path == null) {
+      return this.placeHolderImage;
+    }
+
+    let fileLocation = this.getFileAsset(data.path);
+
+    data._isset = true;
+    data.localFile___NODE = fileLocation;
+    return data;
+  }
+
+  processFileField(field, data) {
+    if (typeof data === "undefined" || data === null) {
+      return this.placeHolderImage;
+    }
+
+    let fileLocation = this.getFileAsset(data);
+
+    return {
+      _isset: true,
+      path: data,
+      localFile___NODE: fileLocation
+    };
+  }
+
+  processSetField(field, data) {
+    const fields = field.options.fields.reduce((acc, currentValue) => {
+      acc[currentValue.name] = currentValue;
+      return acc;
+    }, {});
+    if (typeof data !== "undefined" && data !== null) {
+    return this.processFields(fields, data);
+  }
+    return this.processFields(fields, {});
+  }
+
+  processRepeaterField(field, data) {
+    if (typeof data !== "undefined" && data !== null
+      && Array.isArray(data) && data.length > 0) {
+      const result =  data.map(({ field, value}) => {
+        return {
+          [field.name]: this.processField(field, value)
+        };
+      });
+      return result;
+    }
+    return [{
+      _isset: false,
+      [field.name]: this.processField(field.options.field, {})
+    }];
+
+  }
+
+  processAssetField(field, data) {
+    if (typeof data === "undefined" || data === null || data.path == null) {
+      return this.placeHolderAsset;
+    }
+
+    let fileLocation = this.getFileAsset(data.path);
+
+    data._isset = true;
+    data.localFile___NODE = fileLocation;
+    return data;
+  }
+
   createCollectionItemNode({ entry, fields, name }) {
-    return this.createItemNode(
+    return this.createItemNodeNew(
       { entry, fields, name},
       entry._id,
       singular(name)
@@ -365,11 +556,31 @@ module.exports = class CreateNodesHelpers {
   }
 
   createRegionItemNode({ entry, fields, name}) {
-    return this.createItemNode(
+    return this.createItemNodeNew(
       { entry, fields, name},
       `region-${name}`,
       `region${name}`
     );
+  }
+
+  createItemNodeNew({ entry, fields, name }, id, type) {
+
+    const nodeData = this.processFields(fields, entry);
+    const node = {
+      ...nodeData,
+      id: id,
+      children: [],
+      parent: null,
+      internal: {
+        type: type,
+        contentDigest: crypto
+          .createHash(`md5`)
+          .update(JSON.stringify(entry))
+          .digest(`hex`),
+      },
+    };
+    this.createNode(node);
+    return node;
   }
 
   createItemNode({ entry, fields, name }, id, type) {
@@ -379,11 +590,13 @@ module.exports = class CreateNodesHelpers {
     const assetFields = this.getAssetFields(fields);
     const layoutFields = this.getLayoutFields(fields);
     const collectionLinkFields = this.getCollectionLinkFields(fields);
+    const repeaterFields = this.getRepeaterFields(fields);
     const otherFields = this.getOtherFields(fields);
     //2
-    const entryImageFields = this.composeEntryAssetFields(imageFields, entry);
+    const entryImageFields = this.composeEntryImageFields(imageFields, entry);
     const entryAssetFields = this.composeEntryAssetFields(assetFields, entry);
     const entryCollectionLinkFields = this.composeEntryCollectionLinkFields(collectionLinkFields, entry);
+    const entryRepeaterFields = this.composeEntryRepeaterFields(repeaterFields, entry);
     const entryLayoutFields = this.composeEntryLayoutFields(
       layoutFields,
       entry
@@ -399,6 +612,7 @@ module.exports = class CreateNodesHelpers {
       ...entryImageFields,
       ...entryAssetFields,
       ...entryCollectionLinkFields,
+      ...entryRepeaterFields,
       ...entryLayoutFields,
       id: id,
       children: [],
@@ -411,7 +625,6 @@ module.exports = class CreateNodesHelpers {
           .digest(`hex`),
       },
     };
-    console.log(node);
     this.createNode(node);
     return node;
   }
