@@ -449,12 +449,31 @@ module.exports = class CreateNodesHelpers {
   }
 
   processCollectionLinkField(field, data) {
+    if (typeof data === "undefined" || data === null) {
+      return this.config.placeholderValue;
+    }
+
+    const key = field.name + '___NODE';
+    return {
+      [key]: data._id
+    };
+
+    //return collectionLinkFields.reduce((acc, fieldname) => {
+
+      /* const key = fieldname + '___NODE';
+      const newAcc = {
+        ...acc,
+        [key]: data._id,
+      };
+      return newAcc;
+    }, {});
+
     const key = fieldname + '___NODE';
     const newAcc = {
       ...acc,
       [key]: entry[fieldname]._id,
     };
-    return newAcc;
+    return newAcc; */
   }
 
   processGalleryField(field, data) {
@@ -523,6 +542,7 @@ module.exports = class CreateNodesHelpers {
       && Array.isArray(data) && data.length > 0) {
       const result =  data.map(({ field, value}) => {
         return {
+          _isset: true,
           [field.name]: this.processField(field, value)
         };
       });
